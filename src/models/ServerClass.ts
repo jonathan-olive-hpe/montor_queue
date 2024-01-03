@@ -1,6 +1,7 @@
 import  express,{Express} from 'express';
 import cors from 'cors'; // Cross-origin resource sharing library
 import  morgan from 'morgan'; // library for loggin
+import { queueMonitor } from '../queueMonitor/queueMonitor';
 //config
 require('dotenv').config(); // enable .env
 
@@ -16,6 +17,7 @@ export class Server{
         this.runCors();
         this.middlewares();  
         this.routes();
+        this.runMonitor();
     }
     runCors(){
         this.app.use(cors());
@@ -31,6 +33,21 @@ export class Server{
 
         //this.app.get('/example', require('../routes/example-routes'));
         //this.app.use(this.auth,require('../path'));
+    }
+    runMonitor(){
+        
+            try {
+                queueMonitor()
+            } catch (error) {
+                console.log("ERROR: ",error);
+                queueMonitor();
+            }
+
+                
+        
+
+
+        
     }
 
     listen(){
