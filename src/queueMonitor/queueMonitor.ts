@@ -1,5 +1,6 @@
 import puppeteer, { errors,  } from "puppeteer";
 import * as path from "path";
+import { sendMail } from "../utils/Transports";
 //import { phoneNumbers, sendSMS, sendWhats } from "../utils/notifications";
 
 type Status =
@@ -104,7 +105,7 @@ export const queueMonitor = async () => {
                       });
                       return incidentsArray;
                     });
-                    incidents.then((result:Incident[]) => {
+                    incidents.then(async (result:Incident[]) => {
                       incidentsArray = result;
                       if (isFirstScan) {
                         initial_list = result;
@@ -119,6 +120,11 @@ export const queueMonitor = async () => {
                             const line= `${i+1}-${newIndicent.number} - ${newIndicent.shortDescription} \n`;
                             textMessage += line;
                           })
+                          try {
+                            await sendMail([""],textMessage,textMessage)
+                          } catch (error) {
+                            console.log(error);
+                          }
                           /*
                           phoneNumbers.forEach((person)=>{
                            // sendSMS(person.number,textMessage)
@@ -128,7 +134,7 @@ export const queueMonitor = async () => {
                       console.log(new Date().toString()," - newIncidentsArray - ", newIncidents);
                     });
                 });
-                  }, 300000);
+                  }, 60000);
               });
              const hearthBeatInterval = setInterval(()=>{
               //sendWhats("5214491879188","im alive")
