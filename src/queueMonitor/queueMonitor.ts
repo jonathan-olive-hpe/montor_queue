@@ -1,12 +1,7 @@
-import puppeteer, { errors, Page } from "puppeteer";
+import puppeteer, { errors,  } from "puppeteer";
 import * as path from "path";
-const pathtoParentDirectory = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "debug-image.png"
-);
+//import { phoneNumbers, sendSMS, sendWhats } from "../utils/notifications";
+
 type Status =
   | "On Hold"
   | "Assigned"
@@ -14,6 +9,7 @@ type Status =
   | "Resolved"
   | "In Queue"
   | "Cancelled"
+  | "New"
   | "Default";
 
 interface Incident {
@@ -29,7 +25,7 @@ export const queueMonitor = async () => {
   //VARIABLES
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
-  let newPage: Page;
+  let newPage:any = undefined
   let snowUrl =
     "https://hpe.service-now.com/incident_list.do?sysparm_userpref_module=172a63dedbc86300d82a49ee3b961953&sysparm_query=stateNOT+IN6%2C7%2C8%5Eassignment_groupDYNAMICd6435e965f510100a9ad2572f2b47744%5EEQ";
   let incidentsArray: Incident[] = [];
@@ -56,8 +52,8 @@ export const queueMonitor = async () => {
         newPage
           .goto(snowUrl, { waitUntil: "domcontentloaded", timeout: 60000 })
           .then(() => {
-                newPage.reload().then(() => {
                   setInterval(async () => {
+                newPage.reload().then(() => {
                     const incidents = newPage.evaluate(() => {
                       const incidentsArray: Incident[] = [];
                       const body = document.body;
@@ -108,22 +104,38 @@ export const queueMonitor = async () => {
                       });
                       return incidentsArray;
                     });
-                    incidents.then((result) => {
+                    incidents.then((result:Incident[]) => {
                       incidentsArray = result;
                       if (isFirstScan) {
                         initial_list = result;
                       }
                       isFirstScan = false;
-                      result.filter((incident) => {
-                        incident?.status === "On Hold";
+                      const newIncidents=result.filter((incident:Incident) => {
+                        return incident?.status === "New" || incident.status === "In Queue"
                       });
-                      console.log("incidentsArray", incidentsArray);
+                      if(newIncidents.length > 0){
+                          let textMessage = `There are ${newIncidents.length} new incidents \n`
+                          newIncidents.forEach((newIndicent,i)=>{
+                            const line= `${i+1}-${newIndicent.number} - ${newIndicent.shortDescription} \n`;
+                            textMessage += line;
+                          })
+                          /*
+                          phoneNumbers.forEach((person)=>{
+                           // sendSMS(person.number,textMessage)
+                          })
+                          */
+                      }
+                      console.log(new Date().toString()," - newIncidentsArray - ", newIncidents);
                     });
-                  }, 20000);
                 });
+                  }, 300000);
               });
-          
+             const hearthBeatInterval = setInterval(()=>{
+              //sendWhats("5214491879188","im alive")
+             },1200000);
       });
+
+
   } catch (error) {
     console.error("line 23", error);
     process.exit();
